@@ -35,12 +35,21 @@
       const appID = details.appId;
       const serverSecret = details.secretKey;
       const showScreenSharing = details.screenShare;
-
+      
+      ZegoUIKitPrebuilt.enableDebug(true);
       // Generate a Kit Token by calling a method.
       const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userID, userName);
 
       zp = ZegoUIKitPrebuilt.create(kitToken);
 
+      zp.on('screenSharingError', (error) => {
+        console.error('Screen Sharing Error:', error);
+      });
+      
+      zp.on('whiteboardError', (error) => {
+        console.error('Whiteboard Error:', error);
+      });
+      
       zp.joinRoom({
         container: document.querySelector("#root"),
         scenario: {
@@ -123,12 +132,6 @@
         initZego(event.data.details);
       }
     });
-
-    // // Dispatch the custom event to initialize Zego if needed
-    // document.addEventListener('DOMContentLoaded', function() {
-    //   var event = new CustomEvent('init_zego');
-    //   document.dispatchEvent(event);
-    // });
 
   </script>
 </body>
