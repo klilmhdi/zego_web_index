@@ -1,0 +1,136 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/@zegocloud/zego-uikit-prebuilt/zego-uikit-prebuilt.js"></script>
+  <!--add whiteboard plugins before UIKits SDK -->
+  <script src="https://unpkg.com/zego-superboard-web@2.15.3/index.js"></script>
+
+
+
+  <script>
+    var zp;
+
+    // Function to generate a random user ID
+    function generateRandomUserId(length) {
+      var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      var result = '';
+      for (var i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+      return result;
+    }
+
+    // Function to initialize Zego
+    function initZego(details) {
+      const roomID = details.roomID;
+      const userID = details.userID || generateRandomUserId(20);
+      const userName = details.userName;
+      const appID = details.appId;
+      const serverSecret = details.secretKey;
+      const showScreenSharing = details.screenShare;
+
+      // Generate a Kit Token by calling a method.
+      const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userID, userName);
+
+      zp = ZegoUIKitPrebuilt.create(kitToken);
+
+      zp.joinRoom({
+        container: document.querySelector("#root"),
+        scenario: {
+          mode: ZegoUIKitPrebuilt.VideoConference,
+        },
+
+        showRoomTimer: true,
+        showPreJoinView: false,
+        turnOnCameraWhenJoining: true,
+        showMyCameraToggleButton: true,
+        // showAudioVideoSettingsButton: true,
+        showScreenSharingButton: showScreenSharing,
+        videoResolutionList: [
+          ZegoUIKitPrebuilt.VideoResolution_360P,
+          ZegoUIKitPrebuilt.VideoResolution_180P,
+          ZegoUIKitPrebuilt.VideoResolution_480P,
+          ZegoUIKitPrebuilt.VideoResolution_720P,
+        ],
+        videoResolutionDefault: ZegoUIKitPrebuilt.VideoResolution_360P,
+        screenSharingConfig: {
+          // resolution: ZegoUIKitPrebuilt.ScreenSharingResolution_720P
+          resolution: ZegoUIKitPrebuilt.ScreenSharingResolution_Custom,
+          width: 1280,
+          height: 720,
+          frameRate: 10,
+          maxBitRate: 1130,
+        },
+        whiteboardConfig: {
+          showAddImageButton: true, // It's set to false by default. To use this feature, activate the File Sharing feature, and then import the plugin. Otherwise, this prompt will occur: "Failed to add image, this feature is not supported."
+          showCreateAndCloseButton: true, // Whether to display the button that is used to create/turn off the whiteboard. Displayed by default.
+        },
+        showLeavingView: false,
+        showLeaveRoomConfirmDialog: false,
+        onJoinRoom: () => {
+          if (showScreenSharing == true) {
+            zp.addPlugins({ ZegoSuperBoardManager });
+          }
+
+
+          console.log("onJoinRoom");
+          window.parent.postMessage({ type: 'onJoinRoom' }, '*');
+          console.log("message sent");
+        },
+        onLeaveRoom: () => {
+          console.log("Left the room");
+          window.parent.postMessage({ type: 'onLeaveRoom' }, '*');
+          zp.destroy();
+          console.log("message sent");
+        },
+
+        onUserJoin: () => {
+          console.log("onUserJoin");
+          window.parent.postMessage({ type: 'onUserJoin' }, '*');
+          console.log("message sent");
+
+        },
+        onUserLeave: (userDetails) => {
+          console.log("onUserLeave", userDetails[0].userName);
+          window.parent.postMessage({ type: 'onUserLeave', userDetails: userDetails[0].userName }, '*');
+          console.log("message sent");
+          if (userDetails[0].userName !== 'SUPPORT') {
+            zp.destroy();
+          }
+
+
+        },
+        onYouRemovedFromRoom: () => {
+
+          window.parent.postMessage({ type: 'onYouRemovedFromRoom' }, '*');
+          zp.destroy();
+
+        }
+      });
+    }
+
+    window.addEventListener('message', function (event) {
+      console.log("event happened");
+      if (event.data && event.data.type === 'init_zego') {
+        console.log("init_zego is triggered");
+        initZego(event.data.details);
+      }
+    });
+
+    // // Dispatch the custom event to initialize Zego if needed
+    // document.addEventListener('DOMContentLoaded', function() {
+    //   var event = new CustomEvent('init_zego');
+    //   document.dispatchEvent(event);
+    // });
+
+  </script>
+</body>
+
+</html>
